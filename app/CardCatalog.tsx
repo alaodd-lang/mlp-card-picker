@@ -1,0 +1,409 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+
+type Card = {
+  id: string;
+  series: string;
+  filename: string;
+  image: string;
+  images: { field?: string | null; filename: string; series: string; image: string }[];
+  isDoubleSided: boolean;
+  name: string;
+  subtitle?: string | null;
+  title?: string | null;
+  number?: string | null;
+  cardType: string;
+  rarity?: string | null;
+  rarityCode?: string | null;
+  isUltraRare: boolean;
+  isFixed: boolean;
+  isFoil: boolean;
+  isPromo: boolean;
+  pageUrl?: string | null;
+};
+
+type CardData = {
+  cards: Card[];
+  series: { name: string; count: number }[];
+  types: { name: string; count: number }[];
+  assets: { name: string; path: string }[];
+};
+
+type PickedCard = {
+  card: Card;
+  price: string;
+  quantity: number;
+};
+
+const currency = new Intl.NumberFormat("zh-CN", {
+  style: "currency",
+  currency: "CNY",
+  maximumFractionDigits: 2,
+});
+
+const basePath =
+  (import.meta as ImportMeta & { env?: { BASE_URL?: string } }).env?.BASE_URL ?? "/";
+
+function assetUrl(path: string) {
+  if (/^(?:data:|blob:|https?:)/.test(path)) return path;
+  return `${basePath}${path.replace(/^\/+/, "")}`;
+}
+
+const typeColor: Record<string, string> = {
+  Friend: "#22a06b",
+  Event: "#7c5cff",
+  Problem: "#e58b2a",
+  Resource: "#0f7bbf",
+  "Mane Character": "#e0528d",
+  Troublemaker: "#7a4d36",
+  Dilemma: "#697386",
+};
+
+export function CardCatalog() {
+  const [data, setData] = useState<CardData | null>(null);
+  const [activeSeries, setActiveSeries] = useState("All");
+  const [query, setQuery] = useState("");
+  const [rarity, setRarity] = useState("All");
+  const [picked, setPicked] = useState<Record<string, PickedCard>>({});
+  const [exportUrl, setExportUrl] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const exportRef = useRef<HTMLDivElement>(null);
+  const galleryRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    fetch(assetUrl("/data/cards.json"))
+      .then((response) => response.json())
+      .then((payload: CardData) => setData(payload));
+  }, []);
+
+  const cards = data?.cards ?? [];
+  const pickedList = Object.values(picked);
+  const selectedTotal = pickedList.reduce((sum, item) => {
+    const price = Number(item.price || 0);
+    return sum + (Number.isFinite(price) ? price * item.quantity : 0);
+  }, 0);
+
+  const filteredCards = useMemo(() => {
+    const keyword = query.trim().toLowerCase();
+    return cards.filter((card) => {
+      if (activeSeries !== "All" && card.series !== activeSeries) return false;
+      if (rarity === "UR" && !card.isUltraRare) return false;
+      if (rarity === "Foil" && !card.isFoil) return false;
+      if (rarity === "Promo" && !card.isPromo) return false;
+      if (keyword) {
+        const haystack = [
+          card.name,
+          card.subtitle,
+          card.title,
+          card.filename,
+          ...card.images.map((image) => image.filename),
+          card.number,
+          card.series,
+          card.cardType,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        if (!haystack.includes(keyword)) return false;
+      }
+      return true;
+    });
+  }, [activeSeries, cards, query, rarity]);
+
+  const featured = data?.assets?.[0]?.path ?? filteredCards[0]?.image;
+
+  function toggleCard(card: Card) {
+    setPicked((current) => {
+      const copy = { ...current };
+      if (copy[card.id]) {
+        delete copy[card.id];
+      } else {
+        copy[card.id] = { card, price: "", quantity: 1 };
+      }
+      return copy;
+    });
+  }
+
+  function updatePicked(id: string, patch: Partial<PickedCard>) {
+    setPicked((current) => {
+      const existing = current[id];
+      if (!existing) return current;
+      return { ...current, [id]: { ...existing, ...patch } };
+    });
+  }
+
+  function resetGalleryScroll() {
+    requestAnimationFrame(() => {
+      galleryRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
+  function selectSeries(series: string) {
+    setActiveSeries(series);
+    resetGalleryScroll();
+  }
+
+  function selectRarity(value: string) {
+    setRarity(value);
+    resetGalleryScroll();
+  }
+
+  async function generateImage() {
+    if (!pickedList.length || isExporting) return;
+    setIsExporting(true);
+    setExportUrl(null);
+    const canvas = document.createElement("canvas");
+    const width = 1200;
+    const rowHeight = 190;
+    const headerHeight = 190;
+    const footerHeight = 130;
+    const height = headerHeight + pickedList.length * rowHeight + footerHeight;
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.fillStyle = "#fff1f4";
+    ctx.fillRect(0, 0, width, height);
+    ctx.fillStyle = "#111111";
+    ctx.font = "700 44px Arial";
+    ctx.fillText("小马宝莉卡片选购清单", 56, 76);
+    ctx.font = "22px Arial";
+    ctx.fillStyle = "#765764";
+    ctx.fillText(`${pickedList.length} 款卡片 · 合计 ${currency.format(selectedTotal)}`, 56, 122);
+    ctx.fillStyle = "#ff3d91";
+    ctx.fillRect(56, 150, width - 112, 4);
+
+    const images = await Promise.all(
+      pickedList.map(
+        (item) =>
+          new Promise<HTMLImageElement | null>((resolve) => {
+            const image = new Image();
+            image.crossOrigin = "anonymous";
+            image.onload = () => resolve(image);
+            image.onerror = () => resolve(null);
+            image.src = assetUrl(item.card.image);
+          }),
+      ),
+    );
+
+    pickedList.forEach((item, index) => {
+      const y = headerHeight + index * rowHeight;
+      ctx.fillStyle = index % 2 === 0 ? "#ffffff" : "#fff8fa";
+      ctx.fillRect(42, y - 18, width - 84, rowHeight - 16);
+      ctx.strokeStyle = "#171317";
+      ctx.strokeRect(42, y - 18, width - 84, rowHeight - 16);
+      const image = images[index];
+      if (image) {
+        ctx.drawImage(image, 66, y, 108, 151);
+      }
+      ctx.fillStyle = "#111111";
+      ctx.font = "700 28px Arial";
+      ctx.fillText(item.card.name, 202, y + 34);
+      ctx.font = "20px Arial";
+      ctx.fillStyle = "#765764";
+      ctx.fillText(`${item.card.series} · #${item.card.number ?? "-"} · ${item.card.cardType}`, 202, y + 70);
+      ctx.fillStyle = typeColor[item.card.cardType] ?? "#ff3d91";
+      ctx.fillRect(202, y + 92, 12, 12);
+      ctx.fillStyle = "#765764";
+      ctx.font = "18px Arial";
+      const filenameText = item.card.isDoubleSided
+        ? item.card.images.map((image) => image.filename).join(" / ")
+        : item.card.filename;
+      ctx.fillText(filenameText.slice(0, 56), 224, y + 104);
+      ctx.fillStyle = "#111111";
+      ctx.font = "700 24px Arial";
+      const price = Number(item.price || 0);
+      ctx.fillText(`${currency.format(price)} × ${item.quantity}`, 900, y + 54);
+      ctx.fillText(currency.format(price * item.quantity), 900, y + 98);
+    });
+
+    ctx.fillStyle = "#ff3d91";
+    ctx.font = "700 34px Arial";
+    ctx.fillText(`总计 ${currency.format(selectedTotal)}`, 56, height - 58);
+    ctx.font = "18px Arial";
+    ctx.fillStyle = "#765764";
+    ctx.fillText("Generated from MLP CCG picker", 56, height - 28);
+    setExportUrl(canvas.toDataURL("image/png"));
+    setIsExporting(false);
+  }
+
+  if (!data) {
+    return (
+      <main className="appShell loadingShell">
+        <div className="loadingPanel">正在载入卡片图鉴...</div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="appShell">
+      <section className="topBand">
+        <div className="brandBlock">
+          <div className="brandImage" style={{ backgroundImage: `url(${assetUrl(featured)})` }} />
+          <div>
+            <p className="eyebrow">MLP CCG Card Picker</p>
+            <h1>小马宝莉卡片图鉴选购台</h1>
+            <p className="intro">
+              按系列浏览卡片，勾选需要的编号，填写价格后生成一张清单图。
+            </p>
+          </div>
+        </div>
+        <div className="heroArt" aria-hidden="true">
+          <img className="heroGiftPony" src={assetUrl("/brand/asset_12.png")} alt="" />
+        </div>
+      </section>
+
+      <section className="workspace">
+        <aside className="filters">
+          <div className="filterHeading">
+            <p className="eyebrow">FILTER CARDS</p>
+            <h2>筛选卡片</h2>
+            <p>按系列或卡片标记快速查找。</p>
+          </div>
+
+          <label className="searchBox">
+            <span>搜索</span>
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="卡名、编号、文件名"
+            />
+          </label>
+
+          <div className="filterGroup">
+            <div className="filterTitle">系列</div>
+            <button className={activeSeries === "All" ? "active" : ""} onClick={() => selectSeries("All")}>
+              全部 <span>{cards.length}</span>
+            </button>
+            {data.series.map((item) => (
+              <button
+                key={item.name}
+                className={activeSeries === item.name ? "active" : ""}
+                onClick={() => selectSeries(item.name)}
+              >
+                {item.name} <span>{item.count}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="filterGroup compact">
+            <div className="filterTitle">标记</div>
+            {["All", "UR", "Foil", "Promo"].map((item) => (
+              <button key={item} className={rarity === item ? "active" : ""} onClick={() => selectRarity(item)}>
+                {item === "All" ? "全部" : item}
+              </button>
+            ))}
+          </div>
+        </aside>
+
+        <section className="gallery" aria-label="卡片列表" ref={galleryRef}>
+          <div className="galleryHeader">
+            <div>
+              <strong>{filteredCards.length}</strong>
+              <span> 张匹配卡片</span>
+            </div>
+            <button className="ghostButton" onClick={() => setPicked({})} disabled={!pickedList.length}>
+              清空已选
+            </button>
+          </div>
+
+          <div className="cardGrid">
+            {filteredCards.slice(0, 240).map((card) => {
+              const selected = Boolean(picked[card.id]);
+              return (
+                <button
+                  key={card.id}
+                  className={`cardTile ${selected ? "selected" : ""}`}
+                  onClick={() => toggleCard(card)}
+                  title={card.filename}
+                >
+                  <div className="cardImageWrap">
+                    <img src={assetUrl(card.image)} alt={card.name} loading="lazy" />
+                    {card.isDoubleSided && <span className="sideBadge">双面</span>}
+                  </div>
+                  <div className="cardInfo">
+                    <strong>{card.name}</strong>
+                    <span>
+                      #{card.number ?? "-"} · {card.cardType}
+                    </span>
+                    {card.isDoubleSided && (
+                      <small>{card.images.map((image) => image.filename).join(" / ")}</small>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          {filteredCards.length > 240 && (
+            <p className="limitNote">当前先显示前 240 张，继续缩小搜索或筛选会更快。</p>
+          )}
+        </section>
+
+        <aside className="cart" ref={exportRef}>
+          <div className="cartHeader">
+            <div>
+              <p className="eyebrow">Selected</p>
+              <h2>已选清单</h2>
+            </div>
+            <strong>{currency.format(selectedTotal)}</strong>
+          </div>
+
+          <div className="cartList">
+            {pickedList.length === 0 ? (
+              <p className="emptyText">从左侧点选卡片后，会在这里填写价格。</p>
+            ) : (
+              pickedList.map(({ card, price, quantity }) => (
+                <article className="cartItem" key={card.id}>
+                  <div className="cartThumbs">
+                    {card.images.slice(0, 2).map((image) => (
+                      <img key={image.filename} src={assetUrl(image.image)} alt="" />
+                    ))}
+                  </div>
+                  <div>
+                    <strong>{card.name}</strong>
+                    <span>
+                      {card.series} · #{card.number ?? "-"} {card.isDoubleSided ? "· 双面" : ""}
+                    </span>
+                    <div className="cartControls">
+                      <input
+                        aria-label={`${card.name} 价格`}
+                        value={price}
+                        onChange={(event) => updatePicked(card.id, { price: event.target.value })}
+                        placeholder="价格"
+                        inputMode="decimal"
+                      />
+                      <input
+                        aria-label={`${card.name} 数量`}
+                        value={quantity}
+                        onChange={(event) =>
+                          updatePicked(card.id, { quantity: Math.max(1, Number(event.target.value || 1)) })
+                        }
+                        type="number"
+                        min="1"
+                      />
+                    </div>
+                  </div>
+                </article>
+              ))
+            )}
+          </div>
+
+          <button className="primaryButton" onClick={generateImage} disabled={!pickedList.length || isExporting}>
+            {isExporting ? "生成中..." : "生成清单图"}
+          </button>
+
+          {exportUrl && (
+            <div className="exportPreview">
+              <img src={exportUrl} alt="生成的清单图" />
+              <a href={exportUrl} download="mlp-card-list.png">
+                下载图片
+              </a>
+            </div>
+          )}
+        </aside>
+      </section>
+    </main>
+  );
+}
