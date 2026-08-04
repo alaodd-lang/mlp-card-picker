@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "小马宝莉卡片图鉴选购台",
-  description: "按系列筛选小马宝莉 CCG 卡片，点选编号、填写价格并生成清单图。",
+  title: "My Little Pony Card Shop",
+  description: "Browse MLP CCG cards by set, build an order, and generate a shareable order image.",
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",

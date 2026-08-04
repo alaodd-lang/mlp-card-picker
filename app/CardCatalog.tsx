@@ -36,9 +36,10 @@ type PickedCard = {
   quantity: number;
 };
 
-const currency = new Intl.NumberFormat("zh-CN", {
+const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
-  currency: "CNY",
+  currency: "USD",
+  minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 });
 
@@ -66,7 +67,9 @@ export function CardCatalog() {
   const [query, setQuery] = useState("");
   const [rarity, setRarity] = useState("All");
   const [picked, setPicked] = useState<Record<string, PickedCard>>({});
+  const [orderTitle, setOrderTitle] = useState("MLP CCG Card Order");
   const [exportUrl, setExportUrl] = useState<string | null>(null);
+  const [exportFileName, setExportFileName] = useState("mlp-card-order.png");
   const [isExporting, setIsExporting] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
   const galleryRef = useRef<HTMLElement>(null);
@@ -163,15 +166,31 @@ export function CardCatalog() {
     canvas.height = height;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+    const finalOrderTitle = orderTitle.trim() || "MLP CCG Card Order";
+    const safeFileName =
+      finalOrderTitle
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")
+        .slice(0, 60) || "mlp-card-order";
 
     ctx.fillStyle = "#fff1f4";
     ctx.fillRect(0, 0, width, height);
     ctx.fillStyle = "#111111";
-    ctx.font = "700 44px Arial";
-    ctx.fillText("小马宝莉卡片选购清单", 56, 76);
+    let titleSize = 44;
+    ctx.font = `700 ${titleSize}px Arial`;
+    while (ctx.measureText(finalOrderTitle).width > width - 112 && titleSize > 28) {
+      titleSize -= 2;
+      ctx.font = `700 ${titleSize}px Arial`;
+    }
+    ctx.fillText(finalOrderTitle, 56, 76);
     ctx.font = "22px Arial";
     ctx.fillStyle = "#765764";
-    ctx.fillText(`${pickedList.length} 款卡片 · 合计 ${currency.format(selectedTotal)}`, 56, 122);
+    ctx.fillText(
+      `${pickedList.length} ${pickedList.length === 1 ? "card" : "cards"} · Total ${currency.format(selectedTotal)}`,
+      56,
+      122,
+    );
     ctx.fillStyle = "#ff3d91";
     ctx.fillRect(56, 150, width - 112, 4);
 
@@ -221,18 +240,19 @@ export function CardCatalog() {
 
     ctx.fillStyle = "#ff3d91";
     ctx.font = "700 34px Arial";
-    ctx.fillText(`总计 ${currency.format(selectedTotal)}`, 56, height - 58);
+    ctx.fillText(`Total ${currency.format(selectedTotal)}`, 56, height - 58);
     ctx.font = "18px Arial";
     ctx.fillStyle = "#765764";
     ctx.fillText("Generated from MLP CCG picker", 56, height - 28);
     setExportUrl(canvas.toDataURL("image/png"));
+    setExportFileName(`${safeFileName}.png`);
     setIsExporting(false);
   }
 
   if (!data) {
     return (
       <main className="appShell loadingShell">
-        <div className="loadingPanel">正在载入卡片图鉴...</div>
+        <div className="loadingPanel">Loading card catalog...</div>
       </main>
     );
   }
@@ -244,9 +264,9 @@ export function CardCatalog() {
           <div className="brandImage" style={{ backgroundImage: `url(${assetUrl(featured)})` }} />
           <div>
             <p className="eyebrow">MLP CCG Card Picker</p>
-            <h1>小马宝莉卡片图鉴选购台</h1>
+            <h1>My Little Pony Card Shop</h1>
             <p className="intro">
-              按系列浏览卡片，勾选需要的编号，填写价格后生成一张清单图。
+              Browse by set, select the cards you want, enter prices, and create a ready-to-share order image.
             </p>
           </div>
         </div>
@@ -259,23 +279,23 @@ export function CardCatalog() {
         <aside className="filters">
           <div className="filterHeading">
             <p className="eyebrow">FILTER CARDS</p>
-            <h2>筛选卡片</h2>
-            <p>按系列或卡片标记快速查找。</p>
+            <h2>Find Cards</h2>
+            <p>Search by set or card tag.</p>
           </div>
 
           <label className="searchBox">
-            <span>搜索</span>
+            <span>Search</span>
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="卡名、编号、文件名"
+              placeholder="Card name, number, or file"
             />
           </label>
 
           <div className="filterGroup">
-            <div className="filterTitle">系列</div>
+            <div className="filterTitle">Sets</div>
             <button className={activeSeries === "All" ? "active" : ""} onClick={() => selectSeries("All")}>
-              全部 <span>{cards.length}</span>
+              All <span>{cards.length}</span>
             </button>
             {data.series.map((item) => (
               <button
@@ -289,23 +309,23 @@ export function CardCatalog() {
           </div>
 
           <div className="filterGroup compact">
-            <div className="filterTitle">标记</div>
+            <div className="filterTitle">Tags</div>
             {["All", "UR", "Foil", "Promo"].map((item) => (
               <button key={item} className={rarity === item ? "active" : ""} onClick={() => selectRarity(item)}>
-                {item === "All" ? "全部" : item}
+                {item}
               </button>
             ))}
           </div>
         </aside>
 
-        <section className="gallery" aria-label="卡片列表" ref={galleryRef}>
+        <section className="gallery" aria-label="Card catalog" ref={galleryRef}>
           <div className="galleryHeader">
             <div>
               <strong>{filteredCards.length}</strong>
-              <span> 张匹配卡片</span>
+              <span> cards found</span>
             </div>
             <button className="ghostButton" onClick={() => setPicked({})} disabled={!pickedList.length}>
-              清空已选
+              Clear selection
             </button>
           </div>
 
@@ -321,7 +341,7 @@ export function CardCatalog() {
                 >
                   <div className="cardImageWrap">
                     <img src={assetUrl(card.image)} alt={card.name} loading="lazy" />
-                    {card.isDoubleSided && <span className="sideBadge">双面</span>}
+                    {card.isDoubleSided && <span className="sideBadge">2-sided</span>}
                   </div>
                   <div className="cardInfo">
                     <strong>{card.name}</strong>
@@ -337,7 +357,7 @@ export function CardCatalog() {
             })}
           </div>
           {filteredCards.length > 240 && (
-            <p className="limitNote">当前先显示前 240 张，继续缩小搜索或筛选会更快。</p>
+            <p className="limitNote">Showing the first 240 cards. Use search or filters to narrow the results.</p>
           )}
         </section>
 
@@ -345,14 +365,24 @@ export function CardCatalog() {
           <div className="cartHeader">
             <div>
               <p className="eyebrow">Selected</p>
-              <h2>已选清单</h2>
+              <h2>Order</h2>
             </div>
             <strong>{currency.format(selectedTotal)}</strong>
           </div>
 
+          <label className="orderTitleField">
+            <span>Order title</span>
+            <input
+              value={orderTitle}
+              onChange={(event) => setOrderTitle(event.target.value)}
+              placeholder="e.g. Emma's Card Order"
+              maxLength={80}
+            />
+          </label>
+
           <div className="cartList">
             {pickedList.length === 0 ? (
-              <p className="emptyText">从左侧点选卡片后，会在这里填写价格。</p>
+              <p className="emptyText">Select cards from the catalog, then enter the price and quantity here.</p>
             ) : (
               pickedList.map(({ card, price, quantity }) => (
                 <article className="cartItem" key={card.id}>
@@ -364,18 +394,18 @@ export function CardCatalog() {
                   <div>
                     <strong>{card.name}</strong>
                     <span>
-                      {card.series} · #{card.number ?? "-"} {card.isDoubleSided ? "· 双面" : ""}
+                      {card.series} · #{card.number ?? "-"} {card.isDoubleSided ? "· 2-sided" : ""}
                     </span>
                     <div className="cartControls">
                       <input
-                        aria-label={`${card.name} 价格`}
+                        aria-label={`${card.name} price`}
                         value={price}
                         onChange={(event) => updatePicked(card.id, { price: event.target.value })}
-                        placeholder="价格"
+                        placeholder="Price"
                         inputMode="decimal"
                       />
                       <input
-                        aria-label={`${card.name} 数量`}
+                        aria-label={`${card.name} quantity`}
                         value={quantity}
                         onChange={(event) =>
                           updatePicked(card.id, { quantity: Math.max(1, Number(event.target.value || 1)) })
@@ -391,14 +421,14 @@ export function CardCatalog() {
           </div>
 
           <button className="primaryButton" onClick={generateImage} disabled={!pickedList.length || isExporting}>
-            {isExporting ? "生成中..." : "生成清单图"}
+            {isExporting ? "Creating image..." : "Create order image"}
           </button>
 
           {exportUrl && (
             <div className="exportPreview">
-              <img src={exportUrl} alt="生成的清单图" />
-              <a href={exportUrl} download="mlp-card-list.png">
-                下载图片
+              <img src={exportUrl} alt="Generated order" />
+              <a href={exportUrl} download={exportFileName}>
+                Download image
               </a>
             </div>
           )}

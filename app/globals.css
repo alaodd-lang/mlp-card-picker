@@ -180,6 +180,7 @@ h2 {
 }
 
 .searchBox span,
+.orderTitleField span,
 .filterTitle {
   color: var(--foreground);
   font-size: 13px;
@@ -187,6 +188,7 @@ h2 {
 }
 
 .searchBox input,
+.orderTitleField input,
 .cartControls input {
   background: #fff;
   border: 1px solid var(--line-strong);
@@ -198,6 +200,7 @@ h2 {
 }
 
 .searchBox input:focus,
+.orderTitleField input:focus,
 .cartControls input:focus {
   border-color: var(--pink);
   box-shadow: 0 0 0 3px rgba(255, 61, 145, 0.12);
@@ -373,6 +376,12 @@ h2 {
   color: var(--pink);
   font-size: 20px;
   white-space: nowrap;
+}
+
+.orderTitleField {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 16px;
 }
 
 .cartList {
