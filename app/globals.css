@@ -17,6 +17,25 @@
   box-sizing: border-box;
 }
 
+html {
+  scrollbar-color: #d56c9d #f8e5ee;
+  scrollbar-width: thin;
+}
+
+html::-webkit-scrollbar {
+  width: 12px;
+}
+
+html::-webkit-scrollbar-track {
+  background: #f8e5ee;
+}
+
+html::-webkit-scrollbar-thumb {
+  background: #d56c9d;
+  border: 3px solid #f8e5ee;
+  border-radius: 999px;
+}
+
 body {
   margin: 0;
   background: var(--background);
@@ -153,7 +172,31 @@ h2 {
   box-shadow: 0 16px 40px rgba(122, 59, 120, 0.09);
   padding: 16px;
   position: sticky;
+  max-height: calc(100vh - 36px);
+  overflow-y: auto;
+  overscroll-behavior-y: auto;
+  scrollbar-color: var(--pink) #f8e5ee;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
   top: 18px;
+}
+
+.filters::-webkit-scrollbar,
+.cart::-webkit-scrollbar {
+  width: 10px;
+}
+
+.filters::-webkit-scrollbar-track,
+.cart::-webkit-scrollbar-track {
+  background: #f8e5ee;
+  border-radius: 999px;
+}
+
+.filters::-webkit-scrollbar-thumb,
+.cart::-webkit-scrollbar-thumb {
+  background: var(--pink);
+  border: 2px solid #f8e5ee;
+  border-radius: 999px;
 }
 
 .filterHeading {
@@ -387,9 +430,7 @@ h2 {
 .cartList {
   display: grid;
   gap: 10px;
-  max-height: 52vh;
-  overflow: auto;
-  padding-right: 4px;
+  overflow: visible;
 }
 
 .emptyText {
@@ -472,7 +513,10 @@ h2 {
 
   .cart {
     grid-column: 1 / -1;
+    max-height: none;
+    overflow: visible;
     position: static;
+    scrollbar-gutter: auto;
   }
 }
 
@@ -504,7 +548,10 @@ h2 {
 
   .filters,
   .cart {
+    max-height: none;
+    overflow: visible;
     position: static;
+    scrollbar-gutter: auto;
   }
 
   .cardGrid {
