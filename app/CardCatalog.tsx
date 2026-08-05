@@ -63,16 +63,6 @@ function fallbackToOriginal(event: SyntheticEvent<HTMLImageElement>, path: strin
   image.src = assetUrl(path);
 }
 
-const typeColor: Record<string, string> = {
-  Friend: "#22a06b",
-  Event: "#7c5cff",
-  Problem: "#e58b2a",
-  Resource: "#0f7bbf",
-  "Mane Character": "#e0528d",
-  Troublemaker: "#7a4d36",
-  Dilemma: "#697386",
-};
-
 const tradingCardSeries = new Set([
   "Series 1",
   "Series 2",
@@ -276,18 +266,7 @@ export function CardCatalog() {
       const textX = 250;
       ctx.fillStyle = "#111111";
       ctx.font = "700 28px Arial";
-      ctx.fillText(item.card.name, textX, y + 34);
-      ctx.font = "20px Arial";
-      ctx.fillStyle = "#765764";
-      ctx.fillText(`${item.card.series} · #${item.card.number ?? "-"} · ${item.card.cardType}`, textX, y + 70);
-      ctx.fillStyle = typeColor[item.card.cardType] ?? "#ff3d91";
-      ctx.fillRect(textX, y + 92, 12, 12);
-      ctx.fillStyle = "#765764";
-      ctx.font = "18px Arial";
-      const filenameText = item.card.isDoubleSided
-        ? item.card.images.map((image) => image.filename).join(" / ")
-        : item.card.filename;
-      ctx.fillText(filenameText.slice(0, 52), textX + 22, y + 104);
+      ctx.fillText(item.card.name, textX, y + 82);
       ctx.fillStyle = "#111111";
       ctx.font = "700 24px Arial";
       const price = Number(item.price || 0);
