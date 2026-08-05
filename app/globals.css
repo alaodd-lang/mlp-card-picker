@@ -270,6 +270,32 @@ h2 {
   text-align: left;
 }
 
+.seriesLabel {
+  align-items: center;
+  display: flex;
+  gap: 9px;
+  min-width: 0;
+}
+
+.seriesLabel img {
+  background: #f7eaf1;
+  border-radius: 50%;
+  flex: 0 0 28px;
+  height: 28px;
+  object-fit: contain;
+  width: 28px;
+}
+
+.seriesLabel span {
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.seriesCount {
+  flex: 0 0 auto;
+  margin-left: 8px;
+}
+
 .filterGroup.compact {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }

@@ -69,6 +69,21 @@ const tradingCardSeries = new Set([
   "MLP the Movie",
 ]);
 
+const seriesIcons: Record<string, string> = {
+  CanterlotNights: "/series-icons/CanterlotNightsSymbol.png",
+  CelestialSolstice: "/series-icons/CelestialSolsticeSymbol.png",
+  DefendersofEquestria: "/series-icons/DefendersofEquestriaSymbol.png",
+  EquestrianOdysseys: "/series-icons/EquestrianOdysseysSymbol.png",
+  FriendsForever: "/series-icons/FriendsForeverSymbol.png",
+  GenCon: "/series-icons/GenConDemoSymbol.png",
+  GenericFixed: "/series-icons/GenericFixedSymbol.png",
+  HighMagic: "/series-icons/HighMagicSymbol.png",
+  MarksinTime: "/series-icons/MarksinTimeSymbol.png",
+  Premiere: "/series-icons/PremiereSymbol.png",
+  RockNRave: "/series-icons/RockNRaveSymbol.png",
+  SeaquestriaandBeyond: "/series-icons/SeaquestriaandBeyondSymbol.png",
+};
+
 function showDoubleSidedLabel(card: Card) {
   return card.isDoubleSided && !tradingCardSeries.has(card.series);
 }
@@ -333,7 +348,13 @@ export function CardCatalog() {
                 className={activeSeries === item.name ? "active" : ""}
                 onClick={() => selectSeries(item.name)}
               >
-                {item.name} <span>{item.count}</span>
+                <span className="seriesLabel">
+                  {seriesIcons[item.name] && (
+                    <img src={assetUrl(seriesIcons[item.name])} alt="" width="28" height="28" loading="lazy" />
+                  )}
+                  <span>{item.name}</span>
+                </span>
+                <span className="seriesCount">{item.count}</span>
               </button>
             ))}
           </div>
