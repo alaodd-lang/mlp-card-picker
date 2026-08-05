@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type SyntheticEvent, useEffect, useMemo, useRef, useState } from "react";
 
 type Card = {
   id: string;
@@ -53,7 +53,14 @@ function assetUrl(path: string) {
 
 function thumbnailUrl(path: string) {
   const thumbnailPath = path.replace(/^\/cards\//, "/card-thumbs/").replace(/\.[^.]+$/, ".webp");
-  return assetUrl(thumbnailPath);
+  return `${assetUrl(thumbnailPath)}?v=20260805-2`;
+}
+
+function fallbackToOriginal(event: SyntheticEvent<HTMLImageElement>, path: string) {
+  const image = event.currentTarget;
+  if (image.dataset.originalFallback === "true") return;
+  image.dataset.originalFallback = "true";
+  image.src = assetUrl(path);
 }
 
 const typeColor: Record<string, string> = {
@@ -398,7 +405,13 @@ export function CardCatalog() {
                   title={card.filename}
                 >
                   <div className="cardImageWrap">
-                    <img src={thumbnailUrl(card.image)} alt={card.name} loading="lazy" decoding="async" />
+                    <img
+                      src={thumbnailUrl(card.image)}
+                      alt={card.name}
+                      loading="lazy"
+                      decoding="async"
+                      onError={(event) => fallbackToOriginal(event, card.image)}
+                    />
                     {showDoubleSidedLabel(card) && <span className="sideBadge">2-sided</span>}
                   </div>
                   <div className="cardInfo">
@@ -446,7 +459,14 @@ export function CardCatalog() {
                 <article className="cartItem" key={card.id}>
                   <div className="cartThumbs">
                     {card.images.slice(0, 2).map((image) => (
-                      <img key={image.filename} src={thumbnailUrl(image.image)} alt="" loading="lazy" decoding="async" />
+                      <img
+                        key={image.filename}
+                        src={thumbnailUrl(image.image)}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        onError={(event) => fallbackToOriginal(event, image.image)}
+                      />
                     ))}
                   </div>
                   <div>
