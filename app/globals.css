@@ -362,7 +362,26 @@ h2 {
   aspect-ratio: 300 / 419;
   background: #ffe8f1;
   border-radius: 6px;
+  display: block;
   object-fit: cover;
+  width: 100%;
+}
+
+.tradingCardTile .cardImageWrap {
+  aspect-ratio: 1;
+  background: #fff7fa;
+  border-radius: 6px;
+  display: grid;
+  overflow: hidden;
+  place-items: center;
+}
+
+.tradingCardTile .cardImageWrap img {
+  aspect-ratio: auto;
+  height: 100%;
+  inset: 0;
+  object-fit: contain;
+  position: absolute;
   width: 100%;
 }
 
@@ -443,25 +462,33 @@ h2 {
 }
 
 .cartItem {
+  align-items: start;
   display: grid;
   gap: 10px;
-  grid-template-columns: 62px minmax(0, 1fr);
+  grid-template-columns: 104px minmax(0, 1fr);
 }
 
 .cartThumbs {
+  align-items: flex-start;
   display: flex;
   gap: 4px;
+  width: 104px;
 }
 
 .cartThumbs img {
-  aspect-ratio: 300 / 419;
+  background: #fff7fa;
   border-radius: 5px;
-  object-fit: cover;
-  width: 42px;
+  height: 72px;
+  object-fit: contain;
+  width: 50px;
 }
 
 .cartThumbs img:first-child:last-child {
-  width: 62px;
+  width: 72px;
+}
+
+.cartItem > div:last-child {
+  min-width: 0;
 }
 
 .cartItem strong {

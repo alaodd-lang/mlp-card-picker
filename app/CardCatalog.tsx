@@ -73,6 +73,30 @@ function showDoubleSidedLabel(card: Card) {
   return card.isDoubleSided && !tradingCardSeries.has(card.series);
 }
 
+function loadCanvasImage(path: string) {
+  return new Promise<HTMLImageElement | null>((resolve) => {
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+    image.onload = () => resolve(image);
+    image.onerror = () => resolve(null);
+    image.src = assetUrl(path);
+  });
+}
+
+function drawImageContained(
+  ctx: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+) {
+  const scale = Math.min(width / image.naturalWidth, height / image.naturalHeight);
+  const drawWidth = image.naturalWidth * scale;
+  const drawHeight = image.naturalHeight * scale;
+  ctx.drawImage(image, x + (width - drawWidth) / 2, y + (height - drawHeight) / 2, drawWidth, drawHeight);
+}
+
 export function CardCatalog() {
   const [data, setData] = useState<CardData | null>(null);
   const [activeSeries, setActiveSeries] = useState("All");
@@ -207,16 +231,7 @@ export function CardCatalog() {
     ctx.fillRect(56, 150, width - 112, 4);
 
     const images = await Promise.all(
-      pickedList.map(
-        (item) =>
-          new Promise<HTMLImageElement | null>((resolve) => {
-            const image = new Image();
-            image.crossOrigin = "anonymous";
-            image.onload = () => resolve(image);
-            image.onerror = () => resolve(null);
-            image.src = assetUrl(item.card.image);
-          }),
-      ),
+      pickedList.map((item) => Promise.all(item.card.images.slice(0, 2).map((image) => loadCanvasImage(image.image)))),
     );
 
     pickedList.forEach((item, index) => {
@@ -225,24 +240,27 @@ export function CardCatalog() {
       ctx.fillRect(42, y - 18, width - 84, rowHeight - 16);
       ctx.strokeStyle = "#171317";
       ctx.strokeRect(42, y - 18, width - 84, rowHeight - 16);
-      const image = images[index];
-      if (image) {
-        ctx.drawImage(image, 66, y, 108, 151);
-      }
+      const itemImages = images[index].filter((image): image is HTMLImageElement => image !== null);
+      const imageBoxWidth = itemImages.length > 1 ? 78 : 162;
+      itemImages.forEach((image, imageIndex) => {
+        const imageX = 58 + imageIndex * 84;
+        drawImageContained(ctx, image, imageX, y, imageBoxWidth, 151);
+      });
+      const textX = 250;
       ctx.fillStyle = "#111111";
       ctx.font = "700 28px Arial";
-      ctx.fillText(item.card.name, 202, y + 34);
+      ctx.fillText(item.card.name, textX, y + 34);
       ctx.font = "20px Arial";
       ctx.fillStyle = "#765764";
-      ctx.fillText(`${item.card.series} · #${item.card.number ?? "-"} · ${item.card.cardType}`, 202, y + 70);
+      ctx.fillText(`${item.card.series} · #${item.card.number ?? "-"} · ${item.card.cardType}`, textX, y + 70);
       ctx.fillStyle = typeColor[item.card.cardType] ?? "#ff3d91";
-      ctx.fillRect(202, y + 92, 12, 12);
+      ctx.fillRect(textX, y + 92, 12, 12);
       ctx.fillStyle = "#765764";
       ctx.font = "18px Arial";
       const filenameText = item.card.isDoubleSided
         ? item.card.images.map((image) => image.filename).join(" / ")
         : item.card.filename;
-      ctx.fillText(filenameText.slice(0, 56), 224, y + 104);
+      ctx.fillText(filenameText.slice(0, 52), textX + 22, y + 104);
       ctx.fillStyle = "#111111";
       ctx.font = "700 24px Arial";
       const price = Number(item.price || 0);
@@ -347,12 +365,14 @@ export function CardCatalog() {
               return (
                 <button
                   key={card.id}
-                  className={`cardTile ${selected ? "selected" : ""}`}
+                  className={`cardTile ${selected ? "selected" : ""} ${
+                    tradingCardSeries.has(card.series) ? "tradingCardTile" : ""
+                  }`}
                   onClick={() => toggleCard(card)}
                   title={card.filename}
                 >
                   <div className="cardImageWrap">
-                    <img src={assetUrl(card.image)} alt={card.name} loading="lazy" />
+                    <img src={assetUrl(card.image)} alt={card.name} loading="lazy" decoding="async" />
                     {showDoubleSidedLabel(card) && <span className="sideBadge">2-sided</span>}
                   </div>
                   <div className="cardInfo">
@@ -400,7 +420,7 @@ export function CardCatalog() {
                 <article className="cartItem" key={card.id}>
                   <div className="cartThumbs">
                     {card.images.slice(0, 2).map((image) => (
-                      <img key={image.filename} src={assetUrl(image.image)} alt="" />
+                      <img key={image.filename} src={assetUrl(image.image)} alt="" loading="lazy" decoding="async" />
                     ))}
                   </div>
                   <div>
