@@ -61,6 +61,18 @@ const typeColor: Record<string, string> = {
   Dilemma: "#697386",
 };
 
+const tradingCardSeries = new Set([
+  "Series 1",
+  "Series 2",
+  "Series 3",
+  "Series 4",
+  "MLP the Movie",
+]);
+
+function showDoubleSidedLabel(card: Card) {
+  return card.isDoubleSided && !tradingCardSeries.has(card.series);
+}
+
 export function CardCatalog() {
   const [data, setData] = useState<CardData | null>(null);
   const [activeSeries, setActiveSeries] = useState("All");
@@ -341,14 +353,14 @@ export function CardCatalog() {
                 >
                   <div className="cardImageWrap">
                     <img src={assetUrl(card.image)} alt={card.name} loading="lazy" />
-                    {card.isDoubleSided && <span className="sideBadge">2-sided</span>}
+                    {showDoubleSidedLabel(card) && <span className="sideBadge">2-sided</span>}
                   </div>
                   <div className="cardInfo">
                     <strong>{card.name}</strong>
                     <span>
                       #{card.number ?? "-"} · {card.cardType}
                     </span>
-                    {card.isDoubleSided && (
+                    {showDoubleSidedLabel(card) && (
                       <small>{card.images.map((image) => image.filename).join(" / ")}</small>
                     )}
                   </div>
@@ -394,7 +406,7 @@ export function CardCatalog() {
                   <div>
                     <strong>{card.name}</strong>
                     <span>
-                      {card.series} · #{card.number ?? "-"} {card.isDoubleSided ? "· 2-sided" : ""}
+                      {card.series} · #{card.number ?? "-"} {showDoubleSidedLabel(card) ? "· 2-sided" : ""}
                     </span>
                     <div className="cartControls">
                       <input
