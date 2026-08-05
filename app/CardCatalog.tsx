@@ -51,6 +51,11 @@ function assetUrl(path: string) {
   return `${basePath}${path.replace(/^\/+/, "")}`;
 }
 
+function thumbnailUrl(path: string) {
+  const thumbnailPath = path.replace(/^\/cards\//, "/card-thumbs/").replace(/\.[^.]+$/, ".webp");
+  return assetUrl(thumbnailPath);
+}
+
 const typeColor: Record<string, string> = {
   Friend: "#22a06b",
   Event: "#7c5cff",
@@ -393,7 +398,7 @@ export function CardCatalog() {
                   title={card.filename}
                 >
                   <div className="cardImageWrap">
-                    <img src={assetUrl(card.image)} alt={card.name} loading="lazy" decoding="async" />
+                    <img src={thumbnailUrl(card.image)} alt={card.name} loading="lazy" decoding="async" />
                     {showDoubleSidedLabel(card) && <span className="sideBadge">2-sided</span>}
                   </div>
                   <div className="cardInfo">
@@ -441,7 +446,7 @@ export function CardCatalog() {
                 <article className="cartItem" key={card.id}>
                   <div className="cartThumbs">
                     {card.images.slice(0, 2).map((image) => (
-                      <img key={image.filename} src={assetUrl(image.image)} alt="" loading="lazy" decoding="async" />
+                      <img key={image.filename} src={thumbnailUrl(image.image)} alt="" loading="lazy" decoding="async" />
                     ))}
                   </div>
                   <div>

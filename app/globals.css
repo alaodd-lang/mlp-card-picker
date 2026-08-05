@@ -363,11 +363,12 @@ h2 {
 
 .cardTile {
   background: #ffffff;
-  border: 2px solid transparent;
   border: 1px solid var(--line);
   border-radius: 8px;
   box-shadow: 0 10px 24px rgba(122, 59, 120, 0.07);
   color: inherit;
+  contain-intrinsic-size: auto 290px;
+  content-visibility: auto;
   display: grid;
   gap: 9px;
   min-width: 0;
