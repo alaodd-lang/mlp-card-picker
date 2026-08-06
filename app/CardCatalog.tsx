@@ -1,6 +1,6 @@
 "use client";
 
-import { type SyntheticEvent, useEffect, useMemo, useRef, useState } from "react";
+import { type ChangeEvent, type SyntheticEvent, useEffect, useMemo, useRef, useState } from "react";
 
 type Card = {
   id: string;
@@ -52,6 +52,7 @@ function assetUrl(path: string) {
 }
 
 function thumbnailUrl(path: string) {
+  if (/^(?:data:|blob:)/.test(path)) return path;
   const thumbnailPath = path.replace(/^\/cards\//, "/card-thumbs/").replace(/\.[^.]+$/, ".webp");
   return `${assetUrl(thumbnailPath)}?v=20260805-2`;
 }
@@ -114,6 +115,22 @@ function drawImageContained(
   ctx.drawImage(image, x + (width - drawWidth) / 2, y + (height - drawHeight) / 2, drawWidth, drawHeight);
 }
 
+function drawFittedCanvasText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  maxWidth: number,
+) {
+  let size = 28;
+  ctx.font = `700 ${size}px Arial`;
+  while (ctx.measureText(text).width > maxWidth && size > 18) {
+    size -= 1;
+    ctx.font = `700 ${size}px Arial`;
+  }
+  ctx.fillText(text, x, y, maxWidth);
+}
+
 export function CardCatalog() {
   const [data, setData] = useState<CardData | null>(null);
   const [activeSeries, setActiveSeries] = useState("All");
@@ -124,8 +141,15 @@ export function CardCatalog() {
   const [exportUrl, setExportUrl] = useState<string | null>(null);
   const [exportFileName, setExportFileName] = useState("mlp-card-order.png");
   const [isExporting, setIsExporting] = useState(false);
+  const [customFormOpen, setCustomFormOpen] = useState(false);
+  const [customName, setCustomName] = useState("");
+  const [customPrice, setCustomPrice] = useState("");
+  const [customImage, setCustomImage] = useState<string | null>(null);
+  const [customImageName, setCustomImageName] = useState("");
+  const [customError, setCustomError] = useState("");
   const exportRef = useRef<HTMLDivElement>(null);
   const galleryRef = useRef<HTMLElement>(null);
+  const customFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetch(assetUrl("/data/cards.json"))
@@ -187,6 +211,78 @@ export function CardCatalog() {
       if (!existing) return current;
       return { ...current, [id]: { ...existing, ...patch } };
     });
+  }
+
+  function removePicked(id: string) {
+    setPicked((current) => {
+      const copy = { ...current };
+      delete copy[id];
+      return copy;
+    });
+  }
+
+  function handleCustomImage(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    setCustomError("");
+    if (!file) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setCustomError("Please choose a JPG, PNG, or WebP image.");
+      event.target.value = "";
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      setCustomError("The image must be smaller than 8 MB.");
+      event.target.value = "";
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCustomImage(typeof reader.result === "string" ? reader.result : null);
+      setCustomImageName(file.name);
+    };
+    reader.onerror = () => setCustomError("The image could not be read. Please try another file.");
+    reader.readAsDataURL(file);
+  }
+
+  function addCustomCard() {
+    const name = customName.trim();
+    const price = Number(customPrice);
+    if (!customImage) {
+      setCustomError("Please choose a card image.");
+      return;
+    }
+    if (!name) {
+      setCustomError("Please enter a card name.");
+      return;
+    }
+    if (!customPrice.trim() || !Number.isFinite(price) || price < 0) {
+      setCustomError("Please enter a valid price.");
+      return;
+    }
+
+    const id = `custom-${crypto.randomUUID()}`;
+    const card: Card = {
+      id,
+      series: "Custom",
+      filename: customImageName,
+      image: customImage,
+      images: [{ filename: customImageName, series: "Custom", image: customImage }],
+      isDoubleSided: false,
+      name,
+      cardType: "Custom",
+      isUltraRare: false,
+      isFixed: false,
+      isFoil: false,
+      isPromo: false,
+    };
+    setPicked((current) => ({ ...current, [id]: { card, price: customPrice, quantity: 1 } }));
+    setCustomName("");
+    setCustomPrice("");
+    setCustomImage(null);
+    setCustomImageName("");
+    setCustomError("");
+    setCustomFormOpen(false);
+    if (customFileRef.current) customFileRef.current.value = "";
   }
 
   function resetGalleryScroll() {
@@ -265,8 +361,7 @@ export function CardCatalog() {
       });
       const textX = 250;
       ctx.fillStyle = "#111111";
-      ctx.font = "700 28px Arial";
-      ctx.fillText(item.card.name, textX, y + 82);
+      drawFittedCanvasText(ctx, item.card.name, textX, y + 82, 610);
       ctx.fillStyle = "#111111";
       ctx.font = "700 24px Arial";
       const price = Number(item.price || 0);
@@ -430,6 +525,68 @@ export function CardCatalog() {
             />
           </label>
 
+          <section className={`customCardPanel ${customFormOpen ? "open" : ""}`}>
+            <button
+              className="customCardToggle"
+              type="button"
+              aria-expanded={customFormOpen}
+              onClick={() => {
+                setCustomFormOpen((current) => !current);
+                setCustomError("");
+              }}
+            >
+              <span className="customCardPlus" aria-hidden="true">+</span>
+              <span>Add custom card</span>
+              <span className="customCardChevron" aria-hidden="true">{customFormOpen ? "▴" : "▾"}</span>
+            </button>
+
+            {customFormOpen && (
+              <div className="customCardForm">
+                <label className={`customImagePicker ${customImage ? "hasImage" : ""}`}>
+                  <input
+                    ref={customFileRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleCustomImage}
+                  />
+                  {customImage ? (
+                    <img src={customImage} alt="Custom card preview" />
+                  ) : (
+                    <span>
+                      <strong>Choose image</strong>
+                      <small>JPG, PNG or WebP · Max 8 MB</small>
+                    </span>
+                  )}
+                </label>
+                <div className="customCardFields">
+                  <label>
+                    <span>Card name</span>
+                    <input
+                      value={customName}
+                      onChange={(event) => setCustomName(event.target.value)}
+                      placeholder="Card name"
+                      maxLength={80}
+                    />
+                  </label>
+                  <label>
+                    <span>Price (USD)</span>
+                    <input
+                      value={customPrice}
+                      onChange={(event) => setCustomPrice(event.target.value)}
+                      placeholder="0.00"
+                      inputMode="decimal"
+                    />
+                  </label>
+                </div>
+                {customError && <p className="customCardError" role="alert">{customError}</p>}
+                <p className="customCardPrivacy">The image stays in this browser and is not uploaded.</p>
+                <button className="customCardAddButton" type="button" onClick={addCustomCard}>
+                  Add to order
+                </button>
+              </div>
+            )}
+          </section>
+
           <div className="cartList">
             {pickedList.length === 0 ? (
               <p className="emptyText">Select cards from the catalog, then enter the price and quantity here.</p>
@@ -448,10 +605,12 @@ export function CardCatalog() {
                       />
                     ))}
                   </div>
-                  <div>
+                  <div className="cartItemContent">
                     <strong>{card.name}</strong>
                     <span>
-                      {card.series} · #{card.number ?? "-"} {showDoubleSidedLabel(card) ? "· 2-sided" : ""}
+                      {card.series === "Custom"
+                        ? "Custom card"
+                        : `${card.series} · #${card.number ?? "-"} ${showDoubleSidedLabel(card) ? "· 2-sided" : ""}`}
                     </span>
                     <div className="cartControls">
                       <input
@@ -472,6 +631,17 @@ export function CardCatalog() {
                       />
                     </div>
                   </div>
+                  {card.series === "Custom" && (
+                    <button
+                      className="removeCustomCard"
+                      type="button"
+                      aria-label={`Remove ${card.name}`}
+                      title="Remove custom card"
+                      onClick={() => removePicked(card.id)}
+                    >
+                      ×
+                    </button>
+                  )}
                 </article>
               ))
             )}

@@ -232,7 +232,8 @@ h2 {
 
 .searchBox input,
 .orderTitleField input,
-.cartControls input {
+.cartControls input,
+.customCardFields input {
   background: #fff;
   border: 1px solid var(--line-strong);
   border-radius: 7px;
@@ -244,7 +245,8 @@ h2 {
 
 .searchBox input:focus,
 .orderTitleField input:focus,
-.cartControls input:focus {
+.cartControls input:focus,
+.customCardFields input:focus {
   border-color: var(--pink);
   box-shadow: 0 0 0 3px rgba(255, 61, 145, 0.12);
 }
@@ -473,6 +475,149 @@ h2 {
   margin-bottom: 16px;
 }
 
+.customCardPanel {
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  margin-bottom: 16px;
+}
+
+.customCardToggle {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--foreground);
+  display: grid;
+  font-weight: 800;
+  gap: 9px;
+  grid-template-columns: 28px minmax(0, 1fr) 20px;
+  min-height: 48px;
+  padding: 8px 2px;
+  text-align: left;
+  width: 100%;
+}
+
+.customCardPlus {
+  align-items: center;
+  background: var(--pink);
+  border-radius: 50%;
+  color: #fff;
+  display: flex;
+  font-size: 20px;
+  height: 28px;
+  justify-content: center;
+  line-height: 1;
+  width: 28px;
+}
+
+.customCardChevron {
+  color: var(--muted);
+  font-size: 20px;
+  font-weight: 400;
+  text-align: center;
+}
+
+.customCardForm {
+  background: #fff8fa;
+  border-radius: 7px;
+  display: grid;
+  gap: 11px;
+  margin-bottom: 12px;
+  padding: 12px;
+}
+
+.customImagePicker {
+  align-items: center;
+  background: #fff;
+  border: 1px dashed var(--line-strong);
+  border-radius: 7px;
+  color: var(--foreground);
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  min-height: 92px;
+  overflow: hidden;
+  padding: 10px;
+  text-align: center;
+}
+
+.customImagePicker input {
+  height: 1px;
+  opacity: 0;
+  position: absolute;
+  width: 1px;
+}
+
+.customImagePicker span,
+.customImagePicker small {
+  display: block;
+}
+
+.customImagePicker strong {
+  color: var(--pink);
+  font-size: 14px;
+}
+
+.customImagePicker small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 400;
+  margin-top: 5px;
+}
+
+.customImagePicker.hasImage {
+  padding: 6px;
+}
+
+.customImagePicker img {
+  height: 110px;
+  object-fit: contain;
+  width: 100%;
+}
+
+.customCardFields {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1.7fr) minmax(92px, 1fr);
+}
+
+.customCardFields label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.customCardFields span {
+  color: var(--foreground);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.customCardPrivacy,
+.customCardError {
+  font-size: 11px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.customCardPrivacy {
+  color: var(--muted);
+}
+
+.customCardError {
+  color: #b4234d;
+  font-weight: 700;
+}
+
+.customCardAddButton {
+  background: var(--foreground);
+  border: 0;
+  border-radius: 7px;
+  color: #fff;
+  font-weight: 800;
+  min-height: 40px;
+  padding: 9px 12px;
+}
+
 .cartList {
   display: grid;
   gap: 10px;
@@ -493,6 +638,7 @@ h2 {
   display: grid;
   gap: 10px;
   grid-template-columns: 104px minmax(0, 1fr);
+  position: relative;
 }
 
 .cartThumbs {
@@ -514,7 +660,7 @@ h2 {
   width: 72px;
 }
 
-.cartItem > div:last-child {
+.cartItemContent {
   min-width: 0;
 }
 
@@ -536,6 +682,29 @@ h2 {
   display: grid;
   gap: 8px;
   grid-template-columns: minmax(0, 1fr) 70px;
+}
+
+.removeCustomCard {
+  align-items: center;
+  background: #fff1f4;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--muted);
+  display: flex;
+  font-size: 18px;
+  height: 26px;
+  justify-content: center;
+  line-height: 1;
+  padding: 0 0 2px;
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 26px;
+}
+
+.removeCustomCard:hover {
+  border-color: var(--pink);
+  color: var(--pink);
 }
 
 .exportPreview {
